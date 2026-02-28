@@ -1,6 +1,26 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <fstream>
+#include <sstream>
+
+// ===== FUNCTION PROTOTYPES =====
+void registerStudent();
+void viewStudents();
+void searchStudent();
+void createSession();
+void markAttendance();
+void updateAttendance();
+void viewSessionAttendance();
+void attendanceSummary();
+void loadStudents();
+void loadSessions();
+void saveAttendanceToFile();
+
+// CSV helpers
+void saveStudentsCSV();
+void saveSessionsCSV();
+void saveAttendanceCSV();
 
 using namespace std;
 
@@ -45,10 +65,10 @@ public:
     }
 
     void displaySession() {
-        cout << "Course: " << courseCode
+       cout << "Course: " << courseCode
              << ", Date: " << date
              << ", Start Time: " << startTime
-             << ", Duration(hours): " << duration << " hour(s)" << endl;
+             << ", Duration(hours): " << duration << endl;
     }
 };
 
@@ -74,6 +94,77 @@ public:
 vector<AttendanceRecord> attendanceRecords;
 
 /* =========================
+   CSV SAVE FUNCTIONS (ADDED)
+========================= */
+
+void saveStudentsCSV() {
+    bool writeHeader = false;
+
+    ifstream checkFile("students.csv");
+    if (!checkFile.good() || checkFile.peek() == ifstream::traits_type::eof()) {
+        writeHeader = true;
+    }
+    checkFile.close();
+
+    ofstream file("students.csv", ios::app);
+
+    if (writeHeader) {
+        file << "Name,IndexNumber\n";
+    }
+
+    // write only the LAST added student
+    Student s = students.back();
+    file << s.name << "," << s.indexNumber << endl;
+
+    file.close();
+}
+
+void saveSessionsCSV() {
+    bool writeHeader = false;
+
+    ifstream checkFile("sessions.csv");
+    if (!checkFile.good() || checkFile.peek() == ifstream::traits_type::eof()) {
+        writeHeader = true;
+    }
+    checkFile.close();
+
+    ofstream file("sessions.csv", ios::app);
+
+    if (writeHeader) {
+        file << "CourseCode,Date,StartTime,Duration(Hours)\n";
+    }
+
+    AttendanceSession s = sessions.back();
+    file << s.courseCode << "," << s.date << ","
+         << s.startTime << "," << s.duration << endl;
+
+    file.close();
+}
+
+void saveAttendanceCSV() {
+    bool writeHeader = false;
+
+    ifstream checkFile("attendance.csv");
+    if (!checkFile.good() || checkFile.peek() == ifstream::traits_type::eof()) {
+        writeHeader = true;
+    }
+    checkFile.close();
+
+    ofstream file("attendance.csv", ios::app);
+
+    if (writeHeader) {
+        file << "IndexNumber,CourseCode,Status\n";
+    }
+
+    AttendanceRecord r = attendanceRecords.back();
+    file << r.studentIndex << ","
+         << r.courseCode << ","
+         << r.status << endl;
+
+    file.close();
+}
+
+/* =========================
    STUDENT FUNCTIONS
 ========================= */
 
@@ -88,6 +179,22 @@ void registerStudent() {
     getline(cin, index);
 
     students.push_back(Student(name, index));
+
+    // ORIGINAL TXT SAVE
+    ofstream file("students.txt", ios::app);
+
+// write header only once
+ifstream check("students.txt");
+if (check.peek() == ifstream::traits_type::eof()) {
+    file << "Name,IndexNumber\n";
+}
+check.close();
+
+file << name << "," << index << endl;
+file.close();
+
+    // CSV SAVE (ADDED)
+    saveStudentsCSV();
 
     cout << "Student registered successfully!\n";
 }
@@ -114,6 +221,10 @@ void searchStudent() {
     cout << "Student not found.\n";
 }
 
+/* =========================
+   SESSION FUNCTIONS
+========================= */
+
 void createSession() {
     string course, date, time;
     int duration;
@@ -131,6 +242,26 @@ void createSession() {
     cin >> duration;
 
     sessions.push_back(AttendanceSession(course, date, time, duration));
+
+    // ORIGINAL TXT SAVE
+    string filename = "session_EE201_" + date + ".txt";
+
+// check if file is empty
+ifstream check(filename);
+bool writeHeader = (check.peek() == ifstream::traits_type::eof());
+check.close();
+
+ofstream file(filename, ios::app);
+
+if (writeHeader) {
+    file << "CourseCode,Date,StartTime,Duration(hours)\n";
+}
+
+file << course << "," << date << "," << time << "," << duration << endl;
+file.close();
+
+    // CSV SAVE (ADDED)
+    saveSessionsCSV();
 
     cout << "Attendance session created successfully!\n";
 }
@@ -177,6 +308,11 @@ void markAttendance() {
         );
     }
 
+    // ORIGINAL TXT SAVE
+    saveAttendanceToFile();
+
+    // CSV SAVE (ADDED)
+    saveAttendanceCSV();
 
     cout << "Attendance marked successfully!\n";
 }
@@ -214,7 +350,93 @@ void updateAttendance() {
     else
         attendanceRecords[choice - 1].status = "Absent";
 
+    // CSV SAVE (ADDED)
+    saveAttendanceCSV();
+
     cout << "Attendance updated successfully!\n";
+}
+
+/* =========================
+   REPORTS & FILES
+========================= */
+
+void viewSessionAttendance() {
+    string course;
+    cout << "Enter course code: ";
+    cin >> course;
+
+    cout << "\nAttendance for " << course << ":\n";
+    for (auto &r : attendanceRecords) {
+        if (r.courseCode == course) {
+            cout << "Index: " << r.studentIndex
+                 << ", Status: " << r.status << endl;
+        }
+    }
+}
+
+void attendanceSummary() {
+    int present = 0, absent = 0, late = 0;
+    for (auto &r : attendanceRecords) {
+        if (r.status == "Present") present++;
+        else if (r.status == "Late") late++;
+        else absent++;
+    }
+
+    cout << "\nSummary:\n";
+    cout << "Present: " << present << endl;
+    cout << "Late: " << late << endl;
+    cout << "Absent: " << absent << endl;
+}
+
+void loadStudents() {
+    ifstream file("students.txt");
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        string name, index;
+        getline(ss, name, ',');
+        getline(ss, index);
+        students.push_back(Student(name, index));
+    }
+    file.close();
+}
+
+void loadSessions() {
+    ifstream file("session_EE201_YYYY_MM_DD.txt");
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        string c, d, t;
+        int dur;
+        getline(ss, c, ',');
+        getline(ss, d, ',');
+        getline(ss, t, ',');
+        ss >> dur;
+        sessions.push_back(AttendanceSession(c, d, t, dur));
+    }
+    file.close();
+}
+
+void saveAttendanceToFile() {
+    bool writeHeader = false;
+
+    ifstream check("attendance.txt");
+    if (!check.good() || check.peek() == ifstream::traits_type::eof()) {
+        writeHeader = true;
+    }
+    check.close();
+
+    ofstream file("attendance.txt", ios::app);
+
+    if (writeHeader) {
+        file << "IndexNumber,CourseCode,Status\n";
+    }
+
+    AttendanceRecord r = attendanceRecords.back();
+    file << r.studentIndex << "," << r.courseCode << "," << r.status << endl;
+
+    file.close();
+    cout << "Attendance saved successfully!\n";
 }
 
 /* =========================
@@ -222,18 +444,23 @@ void updateAttendance() {
 ========================= */
 
 int main() {
+    loadStudents();
+    loadSessions();
 
     int choice;
 
     do {
-        cout << "\n===== WEEK 1 =====\n";
+        cout << "\n=====DIGITAL ATTENDANCE SYSTEM=====\n";
         cout << "1. Register Student\n";
         cout << "2. View Students\n";
         cout << "3. Search Student\n";
-        cout << "4. Create Attendance Session\n"; 
+        cout << "4. Create Attendance Session\n";
         cout << "5. Mark Attendance\n";
         cout << "6. Update Attendance\n";
-        cout << "7. Exit\n";
+        cout << "7. View Session Attendance\n";
+        cout << "8. Attendance Summary\n";
+        cout << "9. Save Attendance to File\n";
+        cout << "10. Exit\n";
         cout << "Choice: ";
         cin >> choice;
 
@@ -244,12 +471,14 @@ int main() {
             case 4: createSession(); break;
             case 5: markAttendance(); break;
             case 6: updateAttendance(); break;
-            case 7: cout << "Exiting...\n"; break;
+            case 7: viewSessionAttendance(); break;
+            case 8: attendanceSummary(); break;
+            case 9: saveAttendanceToFile(); break;
+            case 10: cout << "Exiting...\n"; break;
             default: cout << "Invalid choice!\n";
-         
         }
 
-    } while (choice != 7);
+    } while (choice != 10);
 
     return 0;
 }
