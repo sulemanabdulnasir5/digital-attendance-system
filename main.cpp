@@ -27,6 +27,34 @@ public:
 vector<Student> students;
 
 /* =========================
+   ATTENDANCE SESSION CLASS
+========================= */
+
+class AttendanceSession {
+public:
+    string courseCode;
+    string date;
+    string startTime;
+    int duration;
+
+    AttendanceSession(string c, string d, string s, int dur) {
+        courseCode = c;
+        date = d;
+        startTime = s;
+        duration = dur;
+    }
+
+    void displaySession() {
+        cout << "Course: " << courseCode
+             << ", Date: " << date
+             << ", Start Time: " << startTime
+             << ", Duration(hours): " << duration << " hour(s)" << endl;
+    }
+};
+
+vector<AttendanceSession> sessions;
+
+/* =========================
    STUDENT FUNCTIONS
 ========================= */
 
@@ -67,6 +95,27 @@ void searchStudent() {
     cout << "Student not found.\n";
 }
 
+void createSession() {
+    string course, date, time;
+    int duration;
+
+    cout << "Enter Course Code: ";
+    cin >> course;
+
+    cout << "Enter Date (YYYY-MM-DD): ";
+    cin >> date;
+
+    cout << "Enter Start Time: ";
+    cin >> time;
+
+    cout << "Enter Duration (hours): ";
+    cin >> duration;
+
+    sessions.push_back(AttendanceSession(course, date, time, duration));
+
+    cout << "Attendance session created successfully!\n";
+}
+
 /* =========================
    MAIN
 ========================= */
@@ -80,7 +129,8 @@ int main() {
         cout << "1. Register Student\n";
         cout << "2. View Students\n";
         cout << "3. Search Student\n";
-        cout << "4. Exit\n";
+        cout << "4. Create Attendance Session\n";  
+        cout << "5. Exit\n";
         cout << "Choice: ";
         cin >> choice;
 
@@ -88,11 +138,13 @@ int main() {
             case 1: registerStudent(); break;
             case 2: viewStudents(); break;
             case 3: searchStudent(); break;
-            case 4: cout << "Exiting...\n"; break;
+            case 4: createSession(); break;
+            case 5: cout << "Exiting...\n"; break;
             default: cout << "Invalid choice!\n";
+         
         }
 
-    } while (choice != 4);
+    } while (choice != 5);
 
     return 0;
 }
